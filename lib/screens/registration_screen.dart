@@ -1,5 +1,7 @@
 import 'package:Flashchat/constants.dart';
-import 'package:Flashchat/screens/chat_screen.dart';
+import 'package:Flashchat/screens/chat_room.dart';
+import 'package:Flashchat/screens/helperFunction.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
@@ -14,7 +16,9 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final _auth = FirebaseAuth.instance;
   bool showSpinner = false;
-  String email, password;
+  String email, password, name;
+  DatabaseMethods databaseMethods = new DatabaseMethods();
+  QuerySnapshot snapshotUserInfo;
 
   void ErrorHandler(String error) {
     setState(() {
@@ -48,78 +52,113 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         inAsyncCall: showSpinner,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Hero(
-                tag: 'logo',
-                child: Container(
-                  height: 200.0,
-                  child: Image.asset('images/logo.png'),
+          child: Center(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              // mainAxisAlignment: MainAxisAlignment.center,
+              // crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Hero(
+                  tag: 'logo',
+                  child: Container(
+                    height: 200.0,
+                    child: Image.asset('images/logo.png'),
+                  ),
                 ),
-              ),
-              SizedBox(
-                height: 48.0,
-              ),
-              TextField(
-                keyboardType: TextInputType.emailAddress,
-                textAlign: TextAlign.center,
-                onChanged: (value) {
-                  email = value;
-                },
-                decoration:
-                    kTextfieldDecoration.copyWith(hintText: "Enter your email"),
-              ),
-              SizedBox(
-                height: 8.0,
-              ),
-              TextField(
-                obscureText: true,
-                textAlign: TextAlign.center,
-                onChanged: (value) {
-                  password = value;
-                },
-                decoration: kTextfieldDecoration.copyWith(
-                    hintText: "Enter your password"),
-              ),
-              SizedBox(
-                height: 24.0,
-              ),
-              RoundedButton(
-                title: 'Register',
-                onPressed: () async {
-                  setState(() {
-                    showSpinner = !showSpinner;
-                  });
-                  print(email);
-                  print(password);
-                  try {
-                    final newUser = _auth.createUserWithEmailAndPassword(
-                        email: email, password: password);
-                    newUser.then((value) {
-                      if (value == true) {
-                        Navigator.pop(context);
-                        setState(() {
-                          showSpinner = false;
-                        });
-                      } else {
-                        Navigator.pushNamed(context, ChatScreen.id);
-                        setState(() {
-                          showSpinner = false;
-                        });
-                      }
-                    }).catchError((onError) {
-                      ErrorHandler(onError.toString());
+                SizedBox(
+                  height: 48.0,
+                ),
+                TextField(
+                  keyboardType: TextInputType.emailAddress,
+                  textAlign: TextAlign.center,
+                  onChanged: (value) {
+                    name = value;
+                  },
+                  decoration: kTextfieldDecoration.copyWith(
+                      hintText: "Enter your Name"),
+                ),
+                SizedBox(
+                  height: 8.0,
+                ),
+                TextField(
+                  keyboardType: TextInputType.emailAddress,
+                  textAlign: TextAlign.center,
+                  onChanged: (value) {
+                    email = value;
+                  },
+                  decoration: kTextfieldDecoration.copyWith(
+                      hintText: "Enter your email"),
+                ),
+                SizedBox(
+                  height: 8.0,
+                ),
+                TextField(
+                  obscureText: true,
+                  textAlign: TextAlign.center,
+                  onChanged: (value) {
+                    password = value;
+                  },
+                  decoration: kTextfieldDecoration.copyWith(
+                      hintText: "Enter your password"),
+                ),
+                SizedBox(
+                  height: 24.0,
+                ),
+                RoundedButton(
+                  title: 'Register',
+                  onPressed: () async {
+                    Map<String, String> userInfoMap = {
+                      "name": name,
+                      "email": email
+                    };
+                    if (name == null) {
+                      ErrorHandler("You didn't give a proper user name");
+                      return;
+                    }
+                    setState(() {
+                      showSpinner = !showSpinner;
                     });
-                  } catch (e) {
-                    print("Error: $e");
-                  }
-                },
-                colour: Colors.blueAccent,
-                tag: 'registration',
-              )
-            ],
+                    print(email);
+                    print(password);
+                    try {
+                      final newUser = _auth.createUserWithEmailAndPassword(
+                          email: email, password: password);
+                      newUser.then((value) {
+                        if (value == true) {
+                          databaseMethods.uploadUserInfo(userInfoMap);
+                          Navigator.pop(context);
+                          setState(() {
+                            showSpinner = false;
+                          });
+                        } else {
+                          databaseMethods.getUserByUserEmail(email).then((val) {
+                            snapshotUserInfo = val;
+                          });
+                          databaseMethods.uploadUserInfo(userInfoMap);
+                          HelperFunctions.saveUserEmailSharedPreference(email);
+
+                          HelperFunctions.saveUserNameSharedPreference(name);
+                          HelperFunctions.saveUserLoggedInSharedPreference(
+                              true);
+
+                          Navigator.pushNamed(context, ChatRoom.id);
+                          setState(() {
+                            showSpinner = false;
+                          });
+                        }
+                      }).catchError((onError) {
+                        ErrorHandler(onError.toString());
+                      });
+                    } catch (e) {
+                      print("Error: $e");
+                    }
+                  },
+                  colour: Colors.blueAccent,
+                  tag: 'registration',
+                ),
+              ],
+            ),
           ),
         ),
       ),

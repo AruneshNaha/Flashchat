@@ -1,8 +1,8 @@
 import 'package:Flashchat/constants.dart';
-import 'package:Flashchat/screens/chat_screen.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:Flashchat/screens/chat_room.dart';
+import 'package:Flashchat/screens/helperFunction.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 
@@ -14,9 +14,21 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool showSpinner = false;
-
-  final _auth = FirebaseAuth.instance;
+  QuerySnapshot snapshotUserInfo;
+  DatabaseMethods databaseMethods = new DatabaseMethods();
   String email, password;
+
+  saveLocalData(String email) async {
+    await databaseMethods.getUserByUserEmail(email).then((val) {
+      snapshotUserInfo = val;
+    });
+    await HelperFunctions.saveUserEmailSharedPreference(email);
+    String name = await snapshotUserInfo.documents[0].data()["name"];
+    print("UserName: $name");
+
+    HelperFunctions.saveUserNameSharedPreference(name);
+    HelperFunctions.saveUserLoggedInSharedPreference(true);
+  }
 
   void ErrorHandler(String error) {
     setState(() {
@@ -86,6 +98,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: kTextfieldDecoration.copyWith(
                     hintText: "Enter your password"),
               ),
+              Container(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  "Forgot password?",
+                  style: kNormalText,
+                  textAlign: TextAlign.right,
+                ),
+              ),
               SizedBox(
                 height: 24.0,
               ),
@@ -96,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       showSpinner = true;
                     });
                     try {
-                      final newUser = _auth.signInWithEmailAndPassword(
+                      final newUser = auth.signInWithEmailAndPassword(
                           email: email, password: password);
                       newUser.then((value) {
                         if (value == true) {
@@ -105,12 +125,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             showSpinner = false;
                           });
                         } else {
-                          Navigator.pushNamed(context, ChatScreen.id);
+                          saveLocalData(email);
+                          Navigator.pushNamed(context, ChatRoom.id);
                           setState(() {
                             showSpinner = false;
                           });
                         }
                       }).catchError((onError) {
+                        print("Debug 2 : $onError");
                         ErrorHandler(onError.toString());
                       });
                     } catch (e) {
@@ -118,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                   },
                   colour: Colors.lightBlueAccent,
-                  tag: 'login')
+                  tag: 'login'),
             ],
           ),
         ),

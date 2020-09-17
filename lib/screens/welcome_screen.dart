@@ -104,14 +104,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     children: [
                       Text(
                         "Naha's Codebase ",
-                        style: TextStyle(
-                            color: Colors.black, fontWeight: FontWeight.bold),
+                        style: kNormalText,
                       ),
                       Icon(Icons.copyright),
                       Text(
                         " Copyright 2020",
-                        style: TextStyle(
-                            color: Colors.black, fontWeight: FontWeight.bold),
+                        style: kNormalText,
                       )
                     ],
                   )

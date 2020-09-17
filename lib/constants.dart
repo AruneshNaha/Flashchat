@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 const kSendButtonTextStyle = TextStyle(
@@ -11,6 +13,8 @@ const kMessageTextFieldDecoration = InputDecoration(
   hintText: 'Type your message here...',
   border: InputBorder.none,
 );
+
+const kNormalText = TextStyle(color: Colors.black, fontWeight: FontWeight.bold);
 
 const kMessageContainerDecoration = BoxDecoration(
   border: Border(
@@ -70,3 +74,64 @@ const kTextfieldDecoration = InputDecoration(
     borderRadius: BorderRadius.all(Radius.circular(32.0)),
   ),
 );
+
+final auth = FirebaseAuth.instance;
+
+class DatabaseMethods {
+  getUserByUsername(String username) async {
+    return await Firestore.instance
+        .collection("users")
+        .where("name", isEqualTo: username)
+        .getDocuments();
+  }
+
+  getUserByUserEmail(String email) async {
+    return await Firestore.instance
+        .collection("users")
+        .where("email", isEqualTo: email)
+        .getDocuments();
+  }
+
+  uploadUserInfo(Map userInfo) {
+    Firestore.instance.collection("users").add(userInfo);
+  }
+
+  createChatRoom(String chatroomId, chatRoomMap) {
+    Firestore.instance
+        .collection("ChatRoom")
+        .document(chatroomId)
+        .setData(chatRoomMap)
+        .catchError((e) {
+      print("Error in chatroom:${e.toString()}");
+    });
+  }
+}
+
+class Constants {
+  static String myName = "";
+}
+
+Future<dynamic> messagesStream(String chatRoomId) async {
+  Stream snapshot = await Firestore.instance
+      .collection('ChatRoom')
+      .document(chatRoomId)
+      .collection('Chats')
+      .orderBy('Time')
+      .snapshots();
+  return snapshot;
+}
+
+Future<dynamic> sendMessage(
+    String chatRoomId, messageText, loggedInUserEmail) async {
+  await Firestore.instance
+      .collection('ChatRoom')
+      .document(chatRoomId)
+      .collection('Chats')
+      .add({
+    'Time': DateTime.now(),
+    'Text': messageText,
+    'Sender': loggedInUserEmail,
+  }).catchError((e) {
+    print(e.toString());
+  });
+}

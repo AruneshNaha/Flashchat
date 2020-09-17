@@ -1,13 +1,13 @@
+import 'package:Flashchat/screens/helperFunction.dart';
 import 'package:flutter/material.dart';
 import '../constants.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-final _auth = FirebaseAuth.instance;
 final _firestore = Firestore.instance;
 final messageTextController = TextEditingController();
 String messageText;
-User loggedInUser;
+
+String loggedInUserEmail;
 
 class ChatScreen extends StatefulWidget {
   static const String id = 'chat';
@@ -17,22 +17,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   void getCurrentUser() async {
-    FirebaseAuth.instance.authStateChanges().listen((User user) {
-      loggedInUser = user;
-      if (user == null) {
-        print("User is not signed in");
-      } else {
-        print("User is signed in with ${user.email}");
-      }
-    });
-  }
-
-  void getMessages() async {
-    final messages =
-        await _firestore.collection('messages').orderBy('Time').getDocuments();
-    for (var message in messages.documents) {
-      print(message.data());
-    }
+    loggedInUserEmail = await HelperFunctions.getUserEmailSharedPreference();
   }
 
   void messagesStream() async {
@@ -61,11 +46,11 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: () {
                 // messagesStream();
                 // getMessages();
-                _auth.signOut();
+
                 Navigator.pop(context);
               }),
         ],
-        title: Text('⚡️Chat'),
+        title: Text('⚡️ Chat Global'),
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: SafeArea(
@@ -93,7 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       _firestore.collection('messages').add({
                         'Time': DateTime.now(),
                         'Text': messageText,
-                        'Sender': loggedInUser.email,
+                        'Sender': loggedInUserEmail,
                       });
                     },
                     child: Text(
@@ -175,12 +160,10 @@ class MessagesStream extends StatelessWidget {
           final messageText = message.data()['Text'];
           final messageSender = message.data()['Sender'];
 
-          final currentUser = loggedInUser.email;
-
           final messageBubble = MessageBubble(
             messageSender: messageSender,
             messageText: messageText,
-            isMe: currentUser == messageSender,
+            isMe: loggedInUserEmail == messageSender,
           );
           messageWidgets.add(messageBubble);
         }
