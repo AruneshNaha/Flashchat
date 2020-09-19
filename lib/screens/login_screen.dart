@@ -28,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     HelperFunctions.saveUserNameSharedPreference(name);
     HelperFunctions.saveUserLoggedInSharedPreference(true);
+    Constants.myName = name;
+    Constants.myEmail = email;
   }
 
   void ErrorHandler(String error) {

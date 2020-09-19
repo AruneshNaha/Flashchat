@@ -5,7 +5,6 @@ import 'package:Flashchat/screens/search_screen.dart';
 import 'package:Flashchat/screens/welcome_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:rflutter_alert/rflutter_alert.dart';
 import 'conversation.dart';
 
 class ChatRoom extends StatefulWidget {
@@ -35,49 +34,27 @@ class _ChatRoomState extends State<ChatRoom> {
 
   createChatRoomAndStartConversation({String username}) async {
     Constants.myName = await HelperFunctions.getUserNameSharedPreference();
-    if (username != Constants.myName) {
-      print("Users: $username & ${Constants.myName}");
-      String chatRoomId = getChatRoomId(username, Constants.myName);
 
-      List<String> users = [username, Constants.myName];
-      Map<String, dynamic> chatRoomMap = {
-        "user": users,
-        "chatroomId": chatRoomId
-      };
+    // print("Users: $username & ${Constants.myName}");
+    String chatRoomId = getChatRoomId(username, Constants.myName);
 
-      DatabaseMethods().createChatRoom(chatRoomId, chatRoomMap);
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => ConversationScreen(
-                    chatroomId: chatRoomId,
-                    reciever: username,
-                  )));
-    } else {
-      setState(() {
-        Alert(
-          type: AlertType.error,
-          context: context,
-          desc: "You cannot send message to yourself",
-          title: "ERROR",
-          buttons: [
-            DialogButton(
-              child: Text(
-                "OK",
-                style: TextStyle(color: Colors.white),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              width: 120,
-            )
-          ],
-        ).show();
-      });
-    }
+    List<String> users = [username, Constants.myName];
+    Map<String, dynamic> chatRoomMap = {
+      "user": users,
+      "chatroomId": chatRoomId
+    };
+
+    DatabaseMethods().createChatRoom(chatRoomId, chatRoomMap);
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ConversationScreen(
+                  chatRoomId,
+                  username,
+                )));
   }
 
-  Widget searchTile({String userName, userEmail}) {
+  Widget userTile({String userName, userEmail}) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(children: [
@@ -117,17 +94,23 @@ class _ChatRoomState extends State<ChatRoom> {
     );
   }
 
-  Widget searchList() {
+  Widget usersList() {
     return searchSnapshot != null
         ? ListView.builder(
             shrinkWrap: true,
             itemCount: searchSnapshot.documents.length,
             itemBuilder: (context, index) {
               print("Index:$index");
-              return searchTile(
-                userEmail: searchSnapshot.documents[index].data()["email"],
-                userName: searchSnapshot.documents[index].data()["name"],
-              );
+              return searchSnapshot.documents[index].data()["name"] ==
+                      Constants.myName
+                  ? SizedBox(
+                      height: 0,
+                    )
+                  : userTile(
+                      userEmail:
+                          searchSnapshot.documents[index].data()["email"],
+                      userName: searchSnapshot.documents[index].data()["name"],
+                    );
             },
           )
         : Center(
@@ -138,6 +121,7 @@ class _ChatRoomState extends State<ChatRoom> {
   @override
   void initState() {
     initiateState();
+    getUserInfo();
     // TODO: implement initState
     super.initState();
   }
@@ -151,7 +135,7 @@ class _ChatRoomState extends State<ChatRoom> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Chatroom",
+          "FlashChat Chatroom",
         ),
         actions: [
           GestureDetector(
@@ -189,7 +173,7 @@ class _ChatRoomState extends State<ChatRoom> {
           onPressed: () {
             Navigator.pushNamed(context, ChatScreen.id);
           }),
-      body: searchList(),
+      body: usersList(),
     );
   }
 }

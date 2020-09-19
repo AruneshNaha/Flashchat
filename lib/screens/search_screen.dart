@@ -60,8 +60,8 @@ class _SearchScreenState extends State<SearchScreen> {
           context,
           MaterialPageRoute(
               builder: (context) => ConversationScreen(
-                    chatroomId: chatRoomId,
-                    reciever: username,
+                    chatRoomId,
+                    username,
                   )));
     } else {
       setState(() {
@@ -143,38 +143,38 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Container(
         child: Column(
           children: [
-            GestureDetector(
-              onTap: () {
-                initiateSearch();
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: TextField(
-                      onChanged: (val) {
-                        setState(() {
-                          user = val;
-                          initiateSearch();
-                        });
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: TextField(
+                    onChanged: (val) {
+                      setState(() {
+                        user = val;
+                        initiateSearch();
+                      });
+                    },
+                    style: TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                        hintText: "Search username ...",
+                        hintStyle: TextStyle(color: Colors.black54),
+                        border: InputBorder.none),
+                  )),
+                  Container(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50.0)),
+                    child: GestureDetector(
+                      onTap: () {
+                        initiateSearch();
                       },
-                      style: TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                          hintText: "Search username ...",
-                          hintStyle: TextStyle(color: Colors.black54),
-                          border: InputBorder.none),
-                    )),
-                    Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(50.0)),
                       child: Icon(
                         Icons.search,
                         size: 20.0,
                       ),
-                    )
-                  ],
-                ),
+                    ),
+                  )
+                ],
               ),
             ),
             searchList(),

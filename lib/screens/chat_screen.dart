@@ -30,9 +30,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void initState() {
+    getCurrentUser();
     // TODO: implement initState
     super.initState();
-    getCurrentUser();
   }
 
   @override
@@ -40,16 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: null,
-        actions: <Widget>[
-          IconButton(
-              icon: Icon(Icons.close),
-              onPressed: () {
-                // messagesStream();
-                // getMessages();
-
-                Navigator.pop(context);
-              }),
-        ],
+        actions: <Widget>[],
         title: Text('⚡️ Chat Global'),
         backgroundColor: Colors.lightBlueAccent,
       ),

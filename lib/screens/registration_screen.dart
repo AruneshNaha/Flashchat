@@ -135,6 +135,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           databaseMethods.getUserByUserEmail(email).then((val) {
                             snapshotUserInfo = val;
                           });
+                          Constants.myEmail = email;
+                          Constants.myName = name;
                           databaseMethods.uploadUserInfo(userInfoMap);
                           HelperFunctions.saveUserEmailSharedPreference(email);
 

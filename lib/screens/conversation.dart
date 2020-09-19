@@ -1,92 +1,141 @@
+import 'package:Flashchat/constants.dart';
 import 'package:Flashchat/screens/helperFunction.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:Flashchat/constants.dart';
 
+// ignore: must_be_immutable
 class ConversationScreen extends StatefulWidget {
-  final String reciever, chatroomId;
-  const ConversationScreen({Key key, this.reciever, this.chatroomId})
-      : super(key: key);
-
+  String chatRoomId, receiver;
+  ConversationScreen(this.chatRoomId, this.receiver);
   @override
   _ConversationScreenState createState() => _ConversationScreenState();
 }
 
-final messageTextController = TextEditingController();
-String messageText, chatRoomId;
-Stream snapshot;
-String loggedInUserEmail;
-final _firestore = Firestore.instance;
+String loggedInUserName, chatroomid;
 
 class _ConversationScreenState extends State<ConversationScreen> {
-  void initiateState() async {
-    loggedInUserEmail = await HelperFunctions.getUserEmailSharedPreference();
-    chatRoomId = widget.chatroomId;
+  DatabaseMethods databaseMethods = new DatabaseMethods();
+  TextEditingController textEditingController = new TextEditingController();
+
+  Stream chatMessagesStream;
+
+  sendMessage() {
+    if (textEditingController.text.isNotEmpty) {
+      Map<String, dynamic> messageMap = {
+        "message": textEditingController.text,
+        "sentBy": Constants.myName,
+        "time": DateTime.now().millisecondsSinceEpoch
+      };
+      databaseMethods.addConversationMessages(widget.chatRoomId, messageMap);
+    }
+    textEditingController.text = "";
+  }
+
+  getCurrentUser() async {
+    loggedInUserName = await HelperFunctions.getUserNameSharedPreference();
   }
 
   @override
   void initState() {
-    initiateState();
-    getMessages();
-
+    chatroomid = widget.chatRoomId;
     super.initState();
-  }
-
-  getMessages() async {
-    snapshot = await messagesStream(chatRoomId);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("${widget.reciever}"),
-      ),
-      body: SafeArea(
-        child: Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              MessagesStream(),
-              Container(
-                decoration: kMessageContainerDecoration,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Expanded(
-                      child: TextField(
-                        controller: messageTextController,
-                        onChanged: (value) {
-                          messageText = value;
-                        },
-                        decoration: kMessageTextFieldDecoration,
-                      ),
-                    ),
-                    FlatButton(
-                      onPressed: () async {
-                        messageTextController.clear();
-                        await sendMessage(
-                            chatRoomId, messageText, loggedInUserEmail);
-                      },
-                      child: Text(
-                        'Send',
-                        style: kSendButtonTextStyle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        appBar: AppBar(
+          title: Text(widget.receiver),
         ),
-      ),
+        body: SafeArea(
+          child: Container(
+            child: Column(
+              children: [
+                MessagesStream(),
+                Container(
+                  decoration: kMessageContainerDecoration,
+                  alignment: Alignment.bottomCenter,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: TextField(
+                        controller: textEditingController,
+                        style: TextStyle(color: Colors.black),
+                        decoration: InputDecoration(
+                            hintText: "Type a message ...",
+                            hintStyle: TextStyle(color: Colors.black54),
+                            border: InputBorder.none),
+                      )),
+                      GestureDetector(
+                        onTap: () {
+                          sendMessage();
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(50.0)),
+                          child: Icon(
+                            Icons.send,
+                            size: 20.0,
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ));
+  }
+}
+
+class MessagesStream extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('ChatRoom')
+          .doc(chatroomid)
+          .collection('Chats')
+          .orderBy('time')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(
+              backgroundColor: Colors.lightBlueAccent,
+            ),
+          );
+        }
+        final messages = snapshot.data.documents.reversed;
+        List<MessageBubble> messageWidgets = [];
+        for (var message in messages) {
+          final messageText = message.data()['message'];
+          final messageSender = message.data()['sentBy'];
+
+          final messageBubble = MessageBubble(
+            messageSender: messageSender,
+            messageText: messageText,
+            isMe: Constants.myName == messageSender,
+          );
+          messageWidgets.add(messageBubble);
+        }
+        return Expanded(
+          child: ListView(
+            reverse: true,
+            padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
+            children: messageWidgets,
+          ),
+        );
+      },
     );
   }
 }
 
 class MessageBubble extends StatelessWidget {
-  MessageBubble({this.messageText, this.isMe});
-  final String messageText;
+  MessageBubble({this.messageSender, this.messageText, this.isMe});
+  final String messageText, messageSender;
   final bool isMe;
 
   @override
@@ -97,6 +146,10 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment:
             isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
+          Text(
+            messageSender,
+            style: TextStyle(fontSize: 12.0, color: Colors.black54),
+          ),
           Material(
             borderRadius: isMe
                 ? BorderRadius.only(
@@ -121,45 +174,6 @@ class MessageBubble extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class MessagesStream extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: snapshot,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Center(
-            child: CircularProgressIndicator(
-              backgroundColor: Colors.lightBlueAccent,
-            ),
-          );
-        }
-
-        final messages = snapshot.data.documents.reversed;
-        print(messages);
-        List<MessageBubble> messageWidgets = [];
-        for (var message in messages) {
-          final messageText = message.data()['Text'];
-          final messageSender = message.data()['Sender'];
-
-          final messageBubble = MessageBubble(
-            messageText: messageText,
-            isMe: loggedInUserEmail == messageSender,
-          );
-          messageWidgets.add(messageBubble);
-        }
-        return Expanded(
-          child: ListView(
-            reverse: true,
-            padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
-            children: messageWidgets,
-          ),
-        );
-      },
     );
   }
 }

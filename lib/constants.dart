@@ -105,33 +105,20 @@ class DatabaseMethods {
       print("Error in chatroom:${e.toString()}");
     });
   }
+
+  addConversationMessages(String chatRoomId, messageMap) async {
+    await FirebaseFirestore.instance
+        .collection("ChatRoom")
+        .doc(chatRoomId)
+        .collection("Chats")
+        .add(messageMap)
+        .catchError((e) {
+      print("$e error in chat conersation!");
+    });
+  }
 }
 
 class Constants {
   static String myName = "";
-}
-
-Future<dynamic> messagesStream(String chatRoomId) async {
-  Stream snapshot = await Firestore.instance
-      .collection('ChatRoom')
-      .document(chatRoomId)
-      .collection('Chats')
-      .orderBy('Time')
-      .snapshots();
-  return snapshot;
-}
-
-Future<dynamic> sendMessage(
-    String chatRoomId, messageText, loggedInUserEmail) async {
-  await Firestore.instance
-      .collection('ChatRoom')
-      .document(chatRoomId)
-      .collection('Chats')
-      .add({
-    'Time': DateTime.now(),
-    'Text': messageText,
-    'Sender': loggedInUserEmail,
-  }).catchError((e) {
-    print(e.toString());
-  });
+  static String myEmail = "";
 }
