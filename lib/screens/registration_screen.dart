@@ -108,10 +108,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 RoundedButton(
                   title: 'Register',
                   onPressed: () async {
-                    Map<String, String> userInfoMap = {
-                      "name": name,
-                      "email": email
-                    };
                     if (name == null) {
                       ErrorHandler("You didn't give a proper user name");
                       return;
@@ -121,40 +117,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     });
                     print(email);
                     print(password);
-                    try {
-                      final newUser = _auth.createUserWithEmailAndPassword(
-                          email: email, password: password);
-                      newUser.then((value) {
-                        if (value == true) {
-                          databaseMethods.uploadUserInfo(userInfoMap);
-                          Navigator.pop(context);
-                          setState(() {
-                            showSpinner = false;
-                          });
-                        } else {
-                          databaseMethods.getUserByUserEmail(email).then((val) {
-                            snapshotUserInfo = val;
-                          });
-                          Constants.myEmail = email;
-                          Constants.myName = name;
-                          databaseMethods.uploadUserInfo(userInfoMap);
-                          HelperFunctions.saveUserEmailSharedPreference(email);
-
-                          HelperFunctions.saveUserNameSharedPreference(name);
-                          HelperFunctions.saveUserLoggedInSharedPreference(
-                              true);
-
-                          Navigator.pushNamed(context, ChatRoom.id);
-                          setState(() {
-                            showSpinner = false;
-                          });
-                        }
-                      }).catchError((onError) {
-                        ErrorHandler(onError.toString());
-                      });
-                    } catch (e) {
-                      print("Error: $e");
-                    }
+                    createNewUser(email, password);
                   },
                   colour: Colors.blueAccent,
                   tag: 'registration',
@@ -165,5 +128,46 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ),
       ),
     );
+  }
+
+  Future<Null> createNewUser(String email, password) async {
+    try {
+      final newuser = (await auth.createUserWithEmailAndPassword(
+              email: email, password: password))
+          .user;
+      if (newuser.uid != null) {
+        Map<String, String> userInfoMap = {
+          "name": name,
+          "email": email,
+          "uid": (newuser.uid).toString()
+        };
+        databaseMethods.uploadUserInfo(userInfoMap);
+        saveLocalData(email, newuser.uid);
+        Navigator.pushNamed(context, ChatRoom.id);
+        setState(() {
+          showSpinner = false;
+        });
+      }
+    } catch (e) {
+      print("Debug 2 : $e");
+      ErrorHandler(e.toString());
+    }
+  }
+
+  saveLocalData(String email, String uid) async {
+    await databaseMethods.getUserByUserEmail(email).then((val) {
+      snapshotUserInfo = val;
+    });
+
+    await HelperFunctions.saveUserEmailSharedPreference(email);
+    String name = await snapshotUserInfo.documents[0].data()["name"];
+    print("UserName: $name");
+
+    HelperFunctions.saveUserNameSharedPreference(name);
+    HelperFunctions.saveUserUidSharedPreference(uid);
+    HelperFunctions.saveUserLoggedInSharedPreference(true);
+    Constants.myName = name;
+    Constants.myEmail = email;
+    Constants.myUid = uid;
   }
 }

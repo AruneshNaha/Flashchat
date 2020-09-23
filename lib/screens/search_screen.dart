@@ -25,9 +25,9 @@ class _SearchScreenState extends State<SearchScreen> {
             itemBuilder: (context, index) {
               print("Index:$index");
               return searchTile(
-                userEmail: searchSnapshot.documents[index].data()["email"],
-                userName: searchSnapshot.documents[index].data()["name"],
-              );
+                  userEmail: searchSnapshot.documents[index].data()["email"],
+                  userName: searchSnapshot.documents[index].data()["name"],
+                  userUid: searchSnapshot.docs[index].data()["uid"]);
             },
           )
         : Center(
@@ -43,11 +43,11 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  createChatRoomAndStartConversation({String username}) async {
-    Constants.myName = await HelperFunctions.getUserNameSharedPreference();
+  createChatRoomAndStartConversation({String username, useruid}) async {
+    Constants.myUid = await HelperFunctions.getUserUidSharedPreference();
     if (username != Constants.myName) {
       print("Users: $username & ${Constants.myName}");
-      String chatRoomId = getChatRoomId(username, Constants.myName);
+      String chatRoomId = getChatRoomId(useruid, Constants.myUid);
 
       List<String> users = [username, Constants.myName];
       Map<String, dynamic> chatRoomMap = {
@@ -87,7 +87,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Widget searchTile({String userName, userEmail}) {
+  Widget searchTile({String userName, userEmail, userUid}) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(children: [
@@ -110,7 +110,8 @@ class _SearchScreenState extends State<SearchScreen> {
         Spacer(),
         GestureDetector(
           onTap: () {
-            createChatRoomAndStartConversation(username: userName);
+            createChatRoomAndStartConversation(
+                username: userName, useruid: userUid);
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -1,3 +1,4 @@
+import 'package:Flashchat/screens/conversation.dart';
 import 'package:Flashchat/screens/helperFunction.dart';
 import 'package:flutter/material.dart';
 import '../constants.dart';
@@ -17,7 +18,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   void getCurrentUser() async {
-    loggedInUserEmail = await HelperFunctions.getUserEmailSharedPreference();
+    loggedInUserName = await HelperFunctions.getUserNameSharedPreference();
   }
 
   void messagesStream() async {
@@ -69,7 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       _firestore.collection('messages').add({
                         'Time': DateTime.now(),
                         'Text': messageText,
-                        'Sender': loggedInUserEmail,
+                        'Sender': loggedInUserName,
                       });
                     },
                     child: Text(

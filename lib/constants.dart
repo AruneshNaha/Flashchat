@@ -92,6 +92,13 @@ class DatabaseMethods {
         .getDocuments();
   }
 
+  getUserByUserUid(String uid) async {
+    return await Firestore.instance
+        .collection("users")
+        .where("uid", isEqualTo: uid)
+        .getDocuments();
+  }
+
   uploadUserInfo(Map userInfo) {
     Firestore.instance.collection("users").add(userInfo);
   }
@@ -121,4 +128,5 @@ class DatabaseMethods {
 class Constants {
   static String myName = "";
   static String myEmail = "";
+  static String myUid = "";
 }

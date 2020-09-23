@@ -4,6 +4,7 @@ import 'package:Flashchat/screens/helperFunction.dart';
 import 'package:Flashchat/screens/search_screen.dart';
 import 'package:Flashchat/screens/welcome_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'conversation.dart';
 
@@ -14,13 +15,21 @@ class ChatRoom extends StatefulWidget {
 }
 
 class _ChatRoomState extends State<ChatRoom> {
+  FirebaseMessaging firebaseMessaging = FirebaseMessaging();
+  String title = "Title", helper = "Helper";
+
   DatabaseMethods databaseMethods = new DatabaseMethods();
-  String loggedInUserEmail, loggedInUserName;
+  String loggedInUserEmail, loggedInUserName, loggedInUserUid;
   QuerySnapshot searchSnapshot;
 
   void initiateState() async {
     loggedInUserEmail = await HelperFunctions.getUserEmailSharedPreference();
     loggedInUserName = await HelperFunctions.getUserNameSharedPreference();
+    loggedInUserUid = await HelperFunctions.getUserUidSharedPreference();
+
+    Constants.myEmail = loggedInUserEmail;
+    Constants.myUid = loggedInUserUid;
+    Constants.myName = loggedInUserName;
 
     await Firestore.instance
         .collection("users")
@@ -32,13 +41,11 @@ class _ChatRoomState extends State<ChatRoom> {
             });
   }
 
-  createChatRoomAndStartConversation({String username}) async {
-    Constants.myName = await HelperFunctions.getUserNameSharedPreference();
+  createChatRoomAndStartConversation({String useruid, username}) async {
+    print("Users: $username & ${Constants.myName}");
+    String chatRoomId = getChatRoomId(useruid, Constants.myUid);
 
-    // print("Users: $username & ${Constants.myName}");
-    String chatRoomId = getChatRoomId(username, Constants.myName);
-
-    List<String> users = [username, Constants.myName];
+    List<String> users = [useruid, Constants.myUid];
     Map<String, dynamic> chatRoomMap = {
       "user": users,
       "chatroomId": chatRoomId
@@ -54,7 +61,9 @@ class _ChatRoomState extends State<ChatRoom> {
                 )));
   }
 
-  Widget userTile({String userName, userEmail}) {
+  Widget userTile({String userName, userEmail, userUid}) {
+    print("My uid: ${Constants.myUid}");
+    print("Reciever's uid: $userUid");
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(children: [
@@ -77,7 +86,8 @@ class _ChatRoomState extends State<ChatRoom> {
         Spacer(),
         GestureDetector(
           onTap: () {
-            createChatRoomAndStartConversation(username: userName);
+            createChatRoomAndStartConversation(
+                username: userName, useruid: userUid);
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -101,8 +111,8 @@ class _ChatRoomState extends State<ChatRoom> {
             itemCount: searchSnapshot.documents.length,
             itemBuilder: (context, index) {
               print("Index:$index");
-              return searchSnapshot.documents[index].data()["name"] ==
-                      Constants.myName
+              return searchSnapshot.documents[index].data()["uid"] ==
+                      Constants.myUid
                   ? SizedBox(
                       height: 0,
                     )
@@ -110,7 +120,7 @@ class _ChatRoomState extends State<ChatRoom> {
                       userEmail:
                           searchSnapshot.documents[index].data()["email"],
                       userName: searchSnapshot.documents[index].data()["name"],
-                    );
+                      userUid: searchSnapshot.docs[index].data()["uid"]);
             },
           )
         : Center(
@@ -124,6 +134,14 @@ class _ChatRoomState extends State<ChatRoom> {
     getUserInfo();
     // TODO: implement initState
     super.initState();
+
+    firebaseMessaging.configure(onMessage: (message) async {
+      setState(() {
+        title = message["notifcation"]["title"];
+        helper = "You have received a new notification";
+        print("Notification title : $title, helper : $helper");
+      });
+    });
   }
 
   getUserInfo() async {
@@ -134,6 +152,7 @@ class _ChatRoomState extends State<ChatRoom> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           "FlashChat Chatroom",
         ),
